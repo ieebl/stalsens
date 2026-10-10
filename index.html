@@ -110,6 +110,7 @@ summary{cursor:pointer;font-weight:500;font-size:14px}
 .err{color:var(--bad);font-size:13px}
 .empty{background:var(--surface2);border-radius:12px;padding:18px;color:var(--mute);font-size:14px}
 .locked{opacity:.45;pointer-events:none;user-select:none;filter:grayscale(1)}
+.ctl{display:flex;gap:8px;flex-wrap:wrap}
 .pts{margin:6px 0 0;padding-left:18px;display:grid;gap:4px}
 .gitem{padding:12px 0;border-top:1px solid var(--line)}
 .gitem:first-child{border-top:0}
@@ -127,9 +128,15 @@ summary{cursor:pointer;font-weight:500;font-size:14px}
       <span class="logo" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="7"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/></svg></span>
       <div><h1>스탈존 감도 변환기</h1></div>
     </div>
+    <div class="ctl">
+    <div class="seg" role="group" aria-label="Language">
+      <button type="button" id="langKo" aria-pressed="false">한국어</button>
+      <button type="button" id="langEn" aria-pressed="false">English</button>
+    </div>
     <div class="seg" role="group" aria-label="화면 테마">
-      <button type="button" id="themeLight" aria-pressed="false"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>라이트</button>
-      <button type="button" id="themeDark" aria-pressed="false"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>다크</button>
+      <button type="button" id="themeLight" aria-pressed="false"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span>라이트</span></button>
+      <button type="button" id="themeDark" aria-pressed="false"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span>다크</span></button>
+    </div>
     </div>
   </header>
 
@@ -392,16 +399,38 @@ function methodErr(o, method, pct){
 }
 // ==/MATH==
 
+const LANG_KEY = 'stalzone-lang';
+let LANG = 'ko';
+const t = (ko, en) => LANG === 'en' ? en : ko;
+
 const GAMES = {
-  stalzone:{name:'스탈존 (STALZONE)', yaw:STZ_YAW, fov:110, fovType:'vdeg', fixedType:true},
+  stalzone:{name:'스탈존 (STALZONE)', en:'STALZONE', short:'스탈존', shortEn:'STALZONE', yaw:STZ_YAW, fov:110, fovType:'vdeg', fixedType:true},
   ow2:{name:'Overwatch 2', yaw:0.0066, fov:103, fovType:'hdeg169'},
   apex:{name:'Apex Legends', yaw:0.022, fov:110, fovType:'hdeg169'},
   quake:{name:'Quake (Champions / Live)', yaw:0.022, fov:110, fovType:'hdeg169'},
   valorant:{name:'Valorant', yaw:0.07, fov:103, fovType:'hdeg169', fixedFov:true},
   finals:{name:'The Finals', yaw:0.0066, fov:90, fovType:'hdeg169'},
-  custom:{name:'cm/360 직접 입력', yaw:0.022, fov:90, fovType:'hdeg169'}
+  custom:{name:'cm/360 직접 입력', en:'Enter cm/360 directly', yaw:0.022, fov:90, fovType:'hdeg169'}
 };
-const FOV_TYPES = {vdeg:'세로 (Vdeg)', hdeg169:'가로 16:9 기준', hdeg43:'가로 4:3 기준', hdeg_res:'가로 현재 해상도 기준'};
+const gname = k => t(GAMES[k].name, GAMES[k].en || GAMES[k].name);
+const gshort = k => LANG === 'en' ? (GAMES[k].shortEn || GAMES[k].name.replace(/ \(.*\)$/, '')) : (GAMES[k].short || GAMES[k].name.replace(/ \(.*\)$/, ''));
+const FOV_TYPES = {
+  vdeg:['세로 (Vdeg)', 'Vertical (Vdeg)'], hdeg169:['가로 16:9 기준', 'Horizontal, 16:9 basis'],
+  hdeg43:['가로 4:3 기준', 'Horizontal, 4:3 basis'], hdeg_res:['가로 현재 해상도 기준', 'Horizontal, current resolution']
+};
+const fovName = k => t(FOV_TYPES[k][0], FOV_TYPES[k][1]);
+
+const METHODS_EN = {
+  '360':  {name:'360° Distance', hint:'Matches the mouse distance needed for a full 360° turn in any direction. Through a scope, the screen appears to move much faster because of magnification.'},
+  'mdv':  {name:'Monitor Distance Vertical (MDV)', hint:"Matches distance using the crosshair-to-top/bottom screen edge as the reference. 0% matches right around the crosshair (tracking, fine aim), 100% matches the screen edge (big swipes). STALZONE's native method is 100%."},
+  'mdh':  {name:'Monitor Distance Horizontal (MDH)', hint:'Matches distance using the crosshair-to-left/right screen edge as the reference. 0% matches right around the crosshair, 100% matches the left/right screen edge. Results change with aspect ratio.'},
+  'jediv':{name:"Jedi's Trick Vertical", hint:'Matches the midpoint between MDV 0% and 100%. Good when you want both tracking and big swipes covered.'},
+  'jedih':{name:"Jedi's Trick Horizontal", hint:'Matches the midpoint between MDH 0% and 100%. Results change with aspect ratio.'},
+  'vsv':  {name:'Viewspeed Vertical', hint:'Matches how fast the whole view flows past. Calculated as MDV 133%, and gives the same value regardless of aspect ratio.'},
+  'vsh':  {name:'Viewspeed Horizontal', hint:'Matches how fast the whole view flows past. Calculated as MDH 70%, and the value changes with aspect ratio.'}
+};
+const mname = k => LANG === 'en' ? METHODS_EN[k].name : METHODS[k].name;
+const mhint = k => LANG === 'en' ? METHODS_EN[k].hint : METHODS[k].hint;
 
 const GUIDE = [
   {id:'md0', title:'MD 0%', tag:'스나이퍼·고배율 추천', pts:[
@@ -432,6 +461,35 @@ const GUIDE = [
     '중거리 교전과 일반적인 사격전에 두루 맞습니다.',
     '세로는 화면 비율과 무관하고, 가로는 와이드 모니터일수록 약간 더 빨라집니다.']}
 ];
+const GUIDE_EN = {
+  md0:{title:'MD 0%', tag:'Best for snipers / high zoom', pts:[
+    'Matches the on-screen speed right around the crosshair to your hipfire.',
+    'Gives the lowest scope sensitivity, which keeps small corrections around the crosshair, tracking moving targets, and muscle-memory flicks steady.',
+    'Swinging all the way to the screen edge takes more mouse travel, which can feel sluggish.',
+    'Suits snipers, mid-to-long-range DMRs, and anyone who aims precisely at high zoom.']},
+  md100:{title:'MD 100%', tag:'STALZONE default', pts:[
+    'The mouse distance from the top edge to the bottom edge of the screen matches your hipfire.',
+    'This is how STALZONE works natively, so you can simply enter the same value as your hipfire sensitivity.',
+    'Small movements near the screen center feel faster than hipfire, and the gap grows at higher zoom.',
+    'Suits flicks to nearby targets while scoped, big sweeping aim, and quick view changes.',
+    'Tracking can feel slightly jumpy.',
+    'Also a fine pick for anyone who just wants the default without overthinking it.']},
+  '360':{title:'360° Distance', tag:'Reference only', pts:[
+    'A theoretical reference point that almost nobody actually uses.',
+    'You turn the same angle for the same mouse distance, but the scope is magnified, so the screen moves much faster by the zoom factor.',
+    'At high zoom it becomes almost unusably sensitive: 4x is 4 times your hipfire value and 8x is 8 times.',
+    'Treat it as the fastest end point when comparing against other methods.']},
+  jedi:{title:'Jedi’s Trick (Vertical / Horizontal)', tag:'All-rounder', pts:[
+    'The midpoint between MD 0% and MD 100%. It does not give up much on either tracking or big movements.',
+    'Vertical gives the same value regardless of aspect ratio. Horizontal gets higher on wider monitors such as 21:9, so it feels faster than vertical.',
+    'Good as a starting point for all-rounders who track and flick, fight at close and mid-to-long range, or anyone unsure which method fits.']},
+  vs:{title:'Viewspeed (Vertical / Horizontal)', tag:'Best for rifles', pts:[
+    'Many people prefer it because “the view turns at the same speed” is the most intuitive feeling.',
+    'Instead of matching a single point, it matches how fast the whole view flows past to your hipfire.',
+    'Comes out about 12–17% higher than MD 100%, similar to the 1.13–1.29 multipliers Apex players use.',
+    'Works well for mid-range engagements and general gunfights.',
+    'Vertical is independent of aspect ratio; horizontal gets slightly faster on wider monitors.']}
+};
 function guideKey(method, pct){
   if (method === 'mdv' || method === 'mdh'){
     if (pct <= 0.5) return 'md0';
@@ -443,19 +501,75 @@ function guideKey(method, pct){
   return 'vs';
 }
 function itemHTML(g){
-  return `<div class="gitem"><h3>${g.title} <span class="chip acc">${g.tag}</span></h3><ul class="pts">${g.pts.map(p => '<li>' + p + '</li>').join('')}</ul></div>`;
+  const e = LANG === 'en' ? GUIDE_EN[g.id] : g;
+  return `<div class="gitem"><h3>${e.title} <span class="chip acc">${e.tag}</span></h3><ul class="pts">${e.pts.map(p => '<li>' + p + '</li>').join('')}</ul></div>`;
 }
 function methodInfoHTML(method, pct){
   const g = GUIDE.find(x => x.id === guideKey(method, pct));
-  return g ? itemHTML(g) : `<span>${METHODS[method].hint}</span>`;
+  return g ? itemHTML(g) : `<span>${mhint(method)}</span>`;
+}
+
+/* ---------- i18n for static markup ---------- */
+const I18N = {
+  '스탈존 감도 변환기':'STALZONE Sensitivity Converter',
+  '라이트':'Light', '다크':'Dark', '내 환경':'My setup', '마우스 DPI':'Mouse DPI', '해상도':'Resolution', '직접 입력':'Custom',
+  '가로 해상도':'Horizontal resolution', '세로 해상도':'Vertical resolution', '윈도우 포인터 속도':'Windows pointer speed',
+  '6/11 (기본)':'6/11 (default)', '게임 간 변환':'Game Conversion', '조준경 배율':'Scope Zoom', '내 설정 역분석':'Reverse Analysis',
+  '내 스탈존 설정':'My STALZONE settings',
+  '힙파이어 감도 (mouse_sensitivity)':'Hipfire sensitivity (mouse_sensitivity)',
+  'FOV (fov, 세로 도)':'FOV (fov, vertical degrees)',
+  '1배율 조준경 FOV 변경 옵션을 켰어요 (1배율이 1.25배율처럼 동작)':'I turned on the 1x scope FOV change option (1x behaves like 1.25x)',
+  'options.json으로 자동 입력':'Auto-fill from options.json',
+  '다른 게임에서 쓰던 감도를 스탈존 감도로 바꿔요. 오른쪽의 <b class="k">강조된 숫자</b>를 스탈존 설정에 입력하세요.':'Convert the sensitivity you used in another game to STALZONE. Enter the <b class="k">highlighted number</b> on the right in your STALZONE settings.',
+  '원본 게임':'Source game', '게임':'Game', '원본 게임 FOV':'Source game FOV', 'FOV 유형':'FOV type',
+  '이 게임은 윈도우 포인터 속도의 영향을 받아요 (Raw Input을 쓰지 않을 때)':'This game is affected by Windows pointer speed (when not using Raw Input)',
+  '변환 방식':'Conversion method',
+  '지금은 <b>360° 거리</b> 방식으로만 변환해요. 다른 방식은 준비 중이에요.':'Conversion currently uses the <b>360° distance</b> method only. Other methods are coming soon.',
+  '방식':'Method', '기준점 위치 (%)':'Reference point (%)', '변환 방식별 특징 모두 보기':'See how each conversion method feels',
+  '대상 게임':'Target game', '대상 DPI (비우면 위와 같음)':'Target DPI (leave empty for same as above)', '대상 게임 FOV':'Target game FOV',
+  '이 게임은 윈도우 포인터 속도의 영향을 받아요':'This game is affected by Windows pointer speed',
+  '변환 결과':'Result', '이렇게 쓰세요':'How to use',
+  '위의 <b>내 스탈존 설정</b>에 힙파이어 감도와 FOV를 입력해요.':'Enter your hipfire sensitivity and FOV in <b>My STALZONE settings</b> above.',
+  '아래에서 <b>배율 맞춤 방식</b>을 골라요.':'Pick a <b>zoom matching method</b> below.',
+  '표에서 <b class="k">입력할 감도값</b> 열의 숫자를 게임의 배율별 감도(sensitivity_zoom)에 입력해요.':'Enter the numbers in the <b class="k">Value to enter</b> column of the table into the per-zoom sensitivity (sensitivity_zoom) settings in the game.',
+  '<b>추천</b> 라이플 배율(1~4배율 조준경)은 <b>Viewspeed 세로</b>, SR 같은 스나이퍼 고배율은 <b>MD 세로 0%</b>를 추천해요. 아래 버튼으로 바로 적용할 수 있어요.':'<b>Recommended:</b> use <b>Viewspeed Vertical</b> for rifle scopes (1x–4x) and <b>MD Vertical 0%</b> for high-zoom sniper scopes such as SRs. Apply either with the buttons below.',
+  '라이플용 · Viewspeed 세로':'For rifles · Viewspeed Vertical', '스나이퍼용 · MD 세로 0%':'For snipers · MD Vertical 0%',
+  '표는 선택한 방식 하나로 모든 배율을 계산해요. 라이플과 스나이퍼를 다르게 쓰려면 방식을 바꿔 가며 필요한 배율의 값만 입력하세요.':'The table calculates every zoom with the one method you pick. To use different methods for rifles and snipers, switch methods and only enter the values for the zoom levels you need.',
+  '배율 맞춤 방식':'Zoom matching method', '배율 맞춤 방식별 특징 모두 보기':'See how each zoom matching method feels',
+  '배율별 입력값':'Values per zoom', 'options.json 형식으로 복사':'Copy in options.json format',
+  '<b>힙파이어 대비 배수</b>는 힙파이어 감도에 곱한 수, <b>1배율 대비 배수</b>는 1배율 조준경 값에 곱한 수예요.':'<b>× vs. hipfire</b> is the number multiplied onto your hipfire sensitivity, and <b>× vs. 1x</b> is the number multiplied onto your 1x scope value.',
+  '배율이 올라갈수록 필요한 배수':'Multiplier needed as zoom increases',
+  '힙파이어 감도를 1로 봤을 때 각 배율에 곱해야 하는 수예요.':'The number to multiply onto each zoom level when your hipfire sensitivity is 1.',
+  '내 설정 역분석이란?':'What is Reverse Analysis?',
+  '내가 감각에 맞게 직접 맞춰 둔 배율별 감도를 입력하면, 어떤 방식과 퍼센트로 맞춘 건지 분석해요. 그 방식으로 <b>나머지 배율의 감도값</b>도 계산해 줘요.':'Enter the per-zoom sensitivities you tuned by feel, and it works out which method and percentage you matched. It then calculates the <b>sensitivity values for your remaining zoom levels</b> using that method.',
+  '잘 맞는다고 느끼는 <b>배율의 감도값을 2개 이상</b> 아래에 입력해요. 모르는 배율은 비워 두세요.':'Enter the sensitivity values for <b>2 or more zoom levels</b> that feel right below. Leave unknown zoom levels empty.',
+  '결과의 <b class="k">추천 감도값</b>을 비어 있던 배율에 입력하면 돼요.':'Enter the <b class="k">recommended value</b> from the result for the zoom levels you left empty.',
+  '내가 맞춰 둔 감도값':'My tuned values', '예시로 채워 보기':'Fill with an example', '모두 지우기':'Clear all', '분석 결과':'Analysis result'
+};
+const I18N_ATTR = {'화면 테마':'Color theme', '내 환경':'My setup', '기능':'Features', '같음':'Same'};
+const I18N_NODES = [];
+function i18nScan(){
+  const norm = s => s.replace(/\s+/g, ' ').trim();
+  const matched = new Set();
+  document.body.querySelectorAll('*').forEach(el => {
+    if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE' || el.id === 'optMsg') return;
+    for (let a = el.parentElement; a; a = a.parentElement) if (matched.has(a)) return;
+    const k = norm(el.innerHTML);
+    if (Object.prototype.hasOwnProperty.call(I18N, k)){ matched.add(el); I18N_NODES.push({el, ko: el.innerHTML, en: I18N[k]}); }
+  });
+  ['aria-label', 'placeholder'].forEach(attr => document.querySelectorAll('[' + attr + ']').forEach(el => {
+    const ko = el.getAttribute(attr);
+    if (I18N_ATTR[ko]) I18N_NODES.push({el, attr, ko, en: I18N_ATTR[ko]});
+  }));
 }
 
 const $ = id => document.getElementById(id);
 const num = id => { const v = parseFloat($(id).value); return Number.isFinite(v) ? v : NaN; };
 const fmt = (n, d = 3) => Number.isFinite(n) ? n.toLocaleString('en-US', {minimumFractionDigits: d, maximumFractionDigits: d}) : '—';
 const zoomKey = z => Number.isInteger(z) ? z.toFixed(1) : String(z);
+const zl = z => t(z + '배율', z + 'x');
 function copyText(text, btn){
-  const done = () => { if (btn){ const t = btn.textContent; btn.textContent = '복사됨'; setTimeout(() => btn.textContent = t, 1300); } };
+  const done = () => { if (btn){ const old = btn.textContent; btn.textContent = t('복사됨', 'Copied'); setTimeout(() => btn.textContent = old, 1300); } };
   try { navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done)); } catch (e) { fallbackCopy(text, done); }
 }
 function fallbackCopy(text, done){
@@ -472,20 +586,28 @@ function yawOf(key){
   return key === 'custom' ? 1 : GAMES[key].yaw;
 }
 
-function fillSelects(){
+// (Re)builds every select whose labels depend on the language, keeping the current choices.
+function fillOptions(){
+  const ids = ['fromGame', 'toGame', 'fromFovType', 'toFovType', 'method', 'scMethod'];
+  const cur = {}; ids.forEach(id => { cur[id] = $(id).value; });
   const keys = Object.keys(GAMES);
-  $('fromGame').innerHTML = keys.map(k => `<option value="${k}">${GAMES[k].name}</option>`).join('');
-  $('toGame').innerHTML = keys.filter(k => k !== 'custom').map(k => `<option value="${k}">${GAMES[k].name}</option>`).join('');
-  $('fromGame').value = 'valorant'; $('toGame').value = 'stalzone';
-  const ft = Object.keys(FOV_TYPES).map(k => `<option value="${k}">${FOV_TYPES[k]}</option>`).join('');
+  $('fromGame').innerHTML = keys.map(k => `<option value="${k}">${gname(k)}</option>`).join('');
+  $('toGame').innerHTML = keys.filter(k => k !== 'custom').map(k => `<option value="${k}">${gname(k)}</option>`).join('');
+  const ft = Object.keys(FOV_TYPES).map(k => `<option value="${k}">${fovName(k)}</option>`).join('');
   $('fromFovType').innerHTML = ft; $('toFovType').innerHTML = ft;
-  const mOpts = Object.keys(METHODS).map(k => `<option value="${k}">${METHODS[k].name}${k === '360' ? ' (기본)' : ''}</option>`).join('');
+  const mOpts = Object.keys(METHODS).map(k => `<option value="${k}">${mname(k)}${k === '360' ? t(' (기본)', ' (default)') : ''}</option>`).join('');
   $('scMethod').innerHTML = mOpts; $('method').innerHTML = mOpts;
-  $('method').value = '360'; $('scMethod').value = 'vsv'; $('scPct').value = 0;
-  applyGameDefaults('from'); applyGameDefaults('to');
+  ids.forEach(id => { if (cur[id]) $(id).value = cur[id]; });
   $('guideConv').innerHTML = GUIDE.map(itemHTML).join('');
   $('guideSc').innerHTML = GUIDE.map(itemHTML).join('');
-  $('rvInputs').innerHTML = ZOOMS.map((z, i) => `<div class="field"><label for="rv${i}">${z}배율</label><input id="rv${i}" data-save type="number" step="any" placeholder="비워 둠"></div>`).join('');
+  ZOOMS.forEach((z, i) => { $('rvL' + i).textContent = zl(z); $('rv' + i).placeholder = t('비워 둠', 'Leave empty'); });
+}
+function fillSelects(){
+  $('rvInputs').innerHTML = ZOOMS.map((z, i) => `<div class="field"><label for="rv${i}" id="rvL${i}"></label><input id="rv${i}" data-save type="number" step="any"></div>`).join('');
+  fillOptions();
+  $('fromGame').value = 'valorant'; $('toGame').value = 'stalzone';
+  $('method').value = '360'; $('scMethod').value = 'vsv'; $('scPct').value = 0;
+  applyGameDefaults('from'); applyGameDefaults('to');
 }
 
 function applyGameDefaults(side){
@@ -507,8 +629,8 @@ function renderConvert(){
   $('pctBox').hidden = !METHODS[method].pct;
   $('methodHint').innerHTML = methodInfoHTML(method, pct);
   $('fromFovBox').hidden = is360; $('toFovBox').hidden = is360;
-  const vS = is360 ? 90 : vFromFov(num('fromFov'), $('fromFovType').value, e.ar), vT = is360 ? 90 : vFromFov(num('toFov'), $('toFovType').value, e.ar);
-  $('fromSensLbl').textContent = cmMode ? '쓰던 cm/360 (360° 도는 데 필요한 마우스 거리)' : '쓰던 인게임 감도';
+  const vS = 90, vT = 90;
+  $('fromSensLbl').textContent = cmMode ? t('쓰던 cm/360 (360° 도는 데 필요한 마우스 거리)', 'Your cm/360 (mouse distance for a full 360° turn)') : t('쓰던 인게임 감도', 'Your in-game sensitivity');
   $('fromWpsBox').hidden = cmMode;
   const yawS = yawOf(fk), yawT = yawOf(tk);
   const dpiT = num('toDpi') > 0 ? num('toDpi') : e.dpi;
@@ -516,37 +638,35 @@ function renderConvert(){
   let sensS = num('fromSens');
   if (cmMode && sensS > 0) sensS = (CM_PER_DEG_INCH / sensS) / (e.dpi * mS * yawS);
   const out = $('convResult');
-  if (!(sensS > 0) || !(yawS > 0) || !(yawT > 0) || !(vS > 0) || !(vT > 0)){
-    out.innerHTML = '<p class="err">감도(또는 cm/360)와 FOV에 0보다 큰 숫자를 입력하세요.</p>'; return;
+  if (!(sensS > 0) || !(yawS > 0) || !(yawT > 0)){
+    out.innerHTML = '<p class="err">' + t('감도(또는 cm/360)에 0보다 큰 숫자를 입력하세요.', 'Enter a number greater than 0 for the sensitivity (or cm/360).') + '</p>'; return;
   }
   const r = convertHip({dpiS: e.dpi, dpiT, mS, mT, yawS, yawT, sensS, method, pct, vS, vT, ar: e.ar});
-  const tName = GAMES[tk].name.replace(/ \(.*\)$/, ''), fName = cmMode ? '입력한' : GAMES[fk].name.replace(/ \(.*\)$/, '');
+  const tName = gshort(tk), fName = cmMode ? t('입력한', 'Your') : gshort(fk);
   const edpiS = cmMode ? NaN : sensS * e.dpi, edpiT = r.sensT * dpiT;
-  const warnWps = (mS !== 1 || mT !== 1) ? `<div class="note">윈도우 포인터 속도 ${e.wps}/11 (×${WPS_MULT[e.wps]})를 반영했어요. 게임이 Raw Input을 쓰면 체크를 해제하세요.</div>` : '';
-  const warnFov = (!is360 && Math.abs(vS - vT) < 0.01) ? '<div class="note">두 게임의 세로 시야각이 같아서 360° 거리와 같은 결과가 나와요.</div>' : '';
-  const fovKv = is360 ? '' : `<div><b>${fmt(vS, 1)}° / ${fmt(fovFromV(vS, 'hdeg_res', e.ar), 1)}°</b><span>${fName} 세로 / 가로 FOV</span></div><div><b>${fmt(vT, 1)}° / ${fmt(fovFromV(vT, 'hdeg_res', e.ar), 1)}°</b><span>${tName} 세로 / 가로 FOV</span></div>`;
+  const dist = t(' 360° 거리', ' 360° distance');
+  const warnWps = (mS !== 1 || mT !== 1) ? `<div class="note">${t(`윈도우 포인터 속도 ${e.wps}/11 (×${WPS_MULT[e.wps]})를 반영했어요. 게임이 Raw Input을 쓰면 체크를 해제하세요.`, `Applied Windows pointer speed ${e.wps}/11 (×${WPS_MULT[e.wps]}). If the game uses Raw Input, uncheck the box.`)}</div>` : '';
   let range = '';
-  if (tk === 'stalzone' && (r.sensT < SENS_MIN || r.sensT > SENS_MAX)) range = `<div class="note bad">스탈존 감도 범위(${SENS_MIN}~${SENS_MAX})를 벗어나요. DPI를 조정하세요.</div>`;
+  if (tk === 'stalzone' && (r.sensT < SENS_MIN || r.sensT > SENS_MAX)) range = `<div class="note bad">${t(`스탈존 감도 범위(${SENS_MIN}~${SENS_MAX})를 벗어나요. DPI를 조정하세요.`, `Outside STALZONE's sensitivity range (${SENS_MIN}–${SENS_MAX}). Adjust your DPI.`)}</div>`;
   out.innerHTML = `
     <div class="stack">
       <div class="keybox">
-        <span class="k">${tName}에 입력할 감도</span>
+        <span class="k">${t(`${tName}에 입력할 감도`, `Sensitivity to enter in ${tName}`)}</span>
         <span class="v">${fmt(r.sensT, 4)}</span>
-        ${tk === 'stalzone' ? '<span class="w">options.json의 mouse_sensitivity 값이에요</span>' : ''}
+        ${tk === 'stalzone' ? `<span class="w">${t('options.json의 mouse_sensitivity 값이에요', 'This is the mouse_sensitivity value in options.json')}</span>` : ''}
       </div>
-      <div class="btns"><button class="btn primary" id="cpRes" type="button">값 복사</button>${tk === 'stalzone' ? '<button class="btn" id="toScope" type="button">이 감도로 조준경 배율 계산하기</button>' : ''}</div>
+      <div class="btns"><button class="btn primary" id="cpRes" type="button">${t('값 복사', 'Copy value')}</button>${tk === 'stalzone' ? `<button class="btn" id="toScope" type="button">${t('이 감도로 조준경 배율 계산하기', 'Calculate scope multipliers with this value')}</button>` : ''}</div>
       <div class="kv">
-        <div><b>${fmt(r.cmT, 2)} cm</b><span>${tName} 360° 거리</span></div>
-        <div><b>${fmt(r.cmS, 2)} cm</b><span>${fName} 360° 거리</span></div>
+        <div><b>${fmt(r.cmT, 2)} cm</b><span>${tName}${dist}</span></div>
+        <div><b>${fmt(r.cmS, 2)} cm</b><span>${fName}${dist}</span></div>
         <div><b>${fmt(edpiT, 1)}</b><span>${tName} eDPI</span></div>
         <div><b>${fmt(edpiS, 1)}</b><span>${fName} eDPI</span></div>
-        ${fovKv}
       </div>
-      ${warnWps}${warnFov}${range}
+      ${warnWps}${range}
     </div>`;
   $('cpRes').onclick = ev => copyText(String(+r.sensT.toFixed(4)), ev.currentTarget);
   const ts = $('toScope');
-  if (ts) ts.onclick = () => { $('scHip').value = +r.sensT.toFixed(4); if (!is360 && tk === 'stalzone') $('scFov').value = +vT.toFixed(2); showTab('scope'); update(); };
+  if (ts) ts.onclick = () => { $('scHip').value = +r.sensT.toFixed(4); showTab('scope'); update(); };
 }
 
 /* ---------- scope tab ---------- */
@@ -562,21 +682,21 @@ function renderScope(){
   $('scMethodHint').innerHTML = methodInfoHTML(o.method, o.pct);
   const tbl = $('scTable');
   if (!(o.hip > 0) || !(o.vh > 0)){
-    tbl.innerHTML = ''; $('scSummary').innerHTML = '<p class="err">힙파이어 감도와 FOV에 0보다 큰 숫자를 입력하세요.</p>'; $('scChart').innerHTML = ''; $('scLegend').innerHTML = ''; lastScopeRows = null; return;
+    tbl.innerHTML = ''; $('scSummary').innerHTML = '<p class="err">' + t('힙파이어 감도와 FOV에 0보다 큰 숫자를 입력하세요.', 'Enter numbers greater than 0 for hipfire sensitivity and FOV.') + '</p>'; $('scChart').innerHTML = ''; $('scLegend').innerHTML = ''; lastScopeRows = null; return;
   }
   const rows = scopeRows(o); lastScopeRows = rows;
   const hipCm = CM_PER_DEG_INCH / (o.dpi * o.yaw * o.hip);
   const hAct = fovFromV(o.vh, 'hdeg_res', o.ar);
   $('scSummary').innerHTML = `<div class="kv">
-      <div><b>${fmt(hipCm, 2)} cm</b><span>힙파이어 360° 거리</span></div>
-      <div><b>${fmt(o.vh, 1)}° / ${fmt(hAct, 1)}°</b><span>세로 / 가로 FOV</span></div>
+      <div><b>${fmt(hipCm, 2)} cm</b><span>${t('힙파이어 360° 거리', 'Hipfire 360° distance')}</span></div>
+      <div><b>${fmt(o.vh, 1)}° / ${fmt(hAct, 1)}°</b><span>${t('세로 / 가로 FOV', 'Vertical / horizontal FOV')}</span></div>
     </div>`;
-  const head = '<thead><tr><th>배율</th><th>FOV 세로/가로</th><th class="key">입력할 감도값</th><th>힙파이어 대비 배수</th><th>1배율 대비 배수</th><th>실제 cm/360</th></tr></thead>';
+  const head = `<thead><tr><th>${t('배율', 'Zoom')}</th><th>${t('FOV 세로/가로', 'FOV vert. / horiz.')}</th><th class="key">${t('입력할 감도값', 'Value to enter')}</th><th>${t('힙파이어 대비 배수', '× vs. hipfire')}</th><th>${t('1배율 대비 배수', '× vs. 1x')}</th><th>${t('실제 cm/360', 'Actual cm/360')}</th></tr></thead>`;
   const body = rows.map(r => {
     const bad = r.value < SENS_MIN || r.value > SENS_MAX;
-    return `<tr><td>${r.z}배율${(r.z === 1 && o.fov1x) ? ' (1.25배)' : ''}</td>
+    return `<tr><td>${zl(r.z)}${(r.z === 1 && o.fov1x) ? t(' (1.25배)', ' (1.25x)') : ''}</td>
       <td class="mono">${fmt(r.vz, 1)}° / ${fmt(r.hz, 1)}°</td>
-      <td class="key">${fmt(r.value, 4)} ${bad ? '<span class="chip bad">범위 밖</span>' : ''}</td>
+      <td class="key">${fmt(r.value, 4)} ${bad ? `<span class="chip bad">${t('범위 밖', 'Out of range')}</span>` : ''}</td>
       <td class="mono">${fmt(r.mult, 3)}×</td>
       <td class="mono">${fmt(r.vs1x, 3)}×</td>
       <td class="mono">${fmt(r.cm, 1)}</td></tr>`;
@@ -587,10 +707,10 @@ function renderScope(){
 function niceStep(max){ const raw = max / 4, p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; }
 function drawChart(o, rows){
   const series = [
-    {name:'360° 거리', key:'360', pct:0, col:'var(--c-360)', dash:'', w:2},
-    {name:'MDV 0% (추적 기준)', key:'mdv', pct:0, col:'var(--c-md0)', dash:'', w:2.2},
-    {name:'MDV 100% (스탈존 기본값)', key:'mdv', pct:100, col:'var(--c-md100)', dash:'6 4', w:2.2},
-    {name:'선택한 방식: ' + METHODS[o.method].name + (METHODS[o.method].pct ? ' ' + fmt(o.pct, 0) + '%' : ''), key:o.method, pct:o.pct, col:'var(--c-sel)', dash:'', w:3.4}
+    {name:t('360° 거리', '360° distance'), key:'360', pct:0, col:'var(--c-360)', dash:'', w:2},
+    {name:t('MDV 0% (추적 기준)', 'MDV 0% (tracking)'), key:'mdv', pct:0, col:'var(--c-md0)', dash:'', w:2.2},
+    {name:t('MDV 100% (스탈존 기본값)', 'MDV 100% (STALZONE default)'), key:'mdv', pct:100, col:'var(--c-md100)', dash:'6 4', w:2.2},
+    {name:t('선택한 방식: ', 'Selected: ') + mname(o.method) + (METHODS[o.method].pct ? ' ' + fmt(o.pct, 0) + '%' : ''), key:o.method, pct:o.pct, col:'var(--c-sel)', dash:'', w:3.4}
   ];
   const data = series.map(s => rows.map(r => [r.z, ratioFor(s.key, s.pct, r.vz, o.vh, o.ar) * r.ze]));
   const yMaxRaw = Math.max(1, ...data.flat().map(p => p[1]));
@@ -600,9 +720,9 @@ function drawChart(o, rows){
   let g = '';
   for (let v = 0; v <= yMax + 1e-9; v += step){ g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${+v.toFixed(2)}</text>`; }
   [1, 2, 3, 4, 5, 6, 7, 8].forEach(z => { g += `<text x="${x(z)}" y="${H - 12}" text-anchor="middle">${z}x</text>`; });
-  g += `<text x="${L - 6}" y="10" text-anchor="end">배수</text>`;
+  g += `<text x="${L - 6}" y="10" text-anchor="end">${t('배수', 'Multiplier')}</text>`;
   const lines = series.map((s, i) => `<polyline fill="none" stroke="${s.col}" stroke-width="${s.w}" ${s.dash ? `stroke-dasharray="${s.dash}"` : ''} stroke-linejoin="round" stroke-linecap="round" points="${data[i].map(p => x(p[0]).toFixed(1) + ',' + y(p[1]).toFixed(1)).join(' ')}"/>`).join('');
-  $('scChart').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="배율별 필요한 감도 배수 그래프">${g}${lines}</svg>`;
+  $('scChart').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${t('배율별 필요한 감도 배수 그래프', 'Chart of the multiplier needed per zoom level')}">${g}${lines}</svg>`;
   $('scLegend').innerHTML = series.map(s => `<span><i style="border-top-color:${s.col};${s.dash ? 'border-top-style:dashed;' : ''}"></i>${s.name}</span>`).join('');
 }
 
@@ -612,40 +732,40 @@ function renderReverse(){
   const o = scopeParams();
   const out = $('rvResult');
   lastFitPct = null;
-  if (!(o.hip > 0) || !(o.vh > 0)){ out.innerHTML = '<p class="err">위의 내 스탈존 설정에 힙파이어 감도와 FOV를 입력하세요.</p>'; return; }
+  if (!(o.hip > 0) || !(o.vh > 0)){ out.innerHTML = '<p class="err">' + t('위의 내 스탈존 설정에 힙파이어 감도와 FOV를 입력하세요.', 'Enter your hipfire sensitivity and FOV in My STALZONE settings above.') + '</p>'; return; }
   const filled = o.values.filter(v => v > 0).length;
-  if (filled < 2){ out.innerHTML = '<div class="empty">잘 맞는다고 느끼는 배율의 감도값을 2개 이상 입력하면 여기에 분석 결과가 나와요. 예를 들어 1배율, 2배율, 4배율 값을 넣어 보세요.</div>'; return; }
+  if (filled < 2){ out.innerHTML = '<div class="empty">' + t('잘 맞는다고 느끼는 배율의 감도값을 2개 이상 입력하면 여기에 분석 결과가 나와요. 예를 들어 1배율, 2배율, 4배율 값을 넣어 보세요.', 'Enter sensitivity values for 2 or more zoom levels that feel right and the analysis will appear here. For example, try the 1x, 2x, and 4x values.') + '</div>'; return; }
   const fit = fitMD(o);
   const pct = Math.round(fit.pct * 10) / 10;
   lastFitPct = pct;
   const rec = scopeRows({hip: o.hip, vh: o.vh, ar: o.ar, method: 'mdv', pct, fov1x: o.fov1x, yaw: o.yaw, dpi: o.dpi, m: 1});
   const cand = [
-    ['360° 거리', '360', 0], ['MDV 0%', 'mdv', 0], ['MDV 100% (스탈존 기본)', 'mdv', 100],
-    ["Jedi's Trick 세로", 'jediv', 0], ["Jedi's Trick 가로", 'jedih', 0], ['Viewspeed 세로', 'vsv', 0], ['Viewspeed 가로', 'vsh', 0]
+    [t('360° 거리', '360° distance'), '360', 0], ['MDV 0%', 'mdv', 0], [t('MDV 100% (스탈존 기본)', 'MDV 100% (STALZONE default)'), 'mdv', 100],
+    [mname('jediv'), 'jediv', 0], [mname('jedih'), 'jedih', 0], [mname('vsv'), 'vsv', 0], [mname('vsh'), 'vsh', 0]
   ].map(c => ({name: c[0], err: methodErr(o, c[1], c[2])})).sort((a, b) => a.err - b.err);
   const best = cand[0];
-  const huge = o.values.some(v => v > 0 && v / o.hip > 6) ? '<div class="note bad">입력한 값이 힙파이어 감도보다 6배 넘게 커요. 아직 조정하지 않은 기본값이면 분석이 맞지 않을 수 있어요.</div>' : '';
+  const huge = o.values.some(v => v > 0 && v / o.hip > 6) ? `<div class="note bad">${t('입력한 값이 힙파이어 감도보다 6배 넘게 커요. 아직 조정하지 않은 기본값이면 분석이 맞지 않을 수 있어요.', 'A value you entered is more than 6x your hipfire sensitivity. If it is an untouched default, the analysis may not be accurate.')}</div>` : '';
   const body = rec.map((r, i) => {
     const mine = o.values[i];
     const has = mine > 0;
     const diff = has ? (r.value / mine - 1) * 100 : NaN;
-    return `<tr><td>${r.z}배율</td>
+    return `<tr><td>${zl(r.z)}</td>
       <td class="mono">${has ? fmt(mine, 4) : '<span class="hint">—</span>'}</td>
       <td class="key">${fmt(r.value, 4)}</td>
-      <td class="mono">${has ? (diff >= 0 ? '+' : '') + fmt(diff, 1) + '%' : '<span class="chip acc">입력하세요</span>'}</td></tr>`;
+      <td class="mono">${has ? (diff >= 0 ? '+' : '') + fmt(diff, 1) + '%' : `<span class="chip acc">${t('입력하세요', 'Enter this')}</span>`}</td></tr>`;
   }).join('');
   out.innerHTML = `<div class="stack">
     <div class="keybox">
-      <span class="k">내가 맞춘 방식은 MD 세로(MDV) ${fmt(pct, 1)}%에 가장 가까워요</span>
+      <span class="k">${t(`내가 맞춘 방식은 MD 세로(MDV) ${fmt(pct, 1)}%에 가장 가까워요`, `Your setup is closest to Monitor Distance Vertical (MDV) ${fmt(pct, 1)}%`)}</span>
       <span class="v">MDV ${fmt(pct, 1)}%</span>
-      <span class="w">${best.name}와(과) 가장 비슷하고, 입력한 ${fit.n}개 값과의 평균 오차는 ${fmt(fit.rms * 100, 1)}%예요. 0%에 가까울수록 정확해요.</span>
+      <span class="w">${t(`${best.name}와(과) 가장 비슷하고, 입력한 ${fit.n}개 값과의 평균 오차는 ${fmt(fit.rms * 100, 1)}%예요. 0%에 가까울수록 정확해요.`, `Closest named method: ${best.name}. Average error across your ${fit.n} values: ${fmt(fit.rms * 100, 1)}%. Closer to 0% is a better fit.`)}</span>
     </div>
     ${huge}
-    <div class="btns"><button class="btn primary" id="rvApply" type="button">이 방식을 조준경 배율 탭에 적용</button></div>
-    <div class="tablewrap"><table style="min-width:520px"><thead><tr><th>배율</th><th>내가 입력한 값</th><th class="key">추천 감도값</th><th>차이</th></tr></thead><tbody>${body}</tbody></table></div>
-    <p class="hint">비어 있던 배율은 <b>추천 감도값</b>을 그대로 입력하면 내가 맞춘 방식과 같은 느낌이 돼요. 이미 입력한 배율의 차이가 크면 그 배율만 따로 조정한 값이에요.</p>
-    <details><summary>다른 방식과 비교</summary>
-      <div class="tablewrap" style="margin-top:10px"><table style="min-width:360px"><thead><tr><th>방식</th><th>평균 오차</th></tr></thead><tbody>
+    <div class="btns"><button class="btn primary" id="rvApply" type="button">${t('이 방식을 조준경 배율 탭에 적용', 'Apply this method in the Scope Zoom tab')}</button></div>
+    <div class="tablewrap"><table style="min-width:520px"><thead><tr><th>${t('배율', 'Zoom')}</th><th>${t('내가 입력한 값', 'Your value')}</th><th class="key">${t('추천 감도값', 'Recommended value')}</th><th>${t('차이', 'Difference')}</th></tr></thead><tbody>${body}</tbody></table></div>
+    <p class="hint">${t('비어 있던 배율은 <b>추천 감도값</b>을 그대로 입력하면 내가 맞춘 방식과 같은 느낌이 돼요. 이미 입력한 배율의 차이가 크면 그 배율만 따로 조정한 값이에요.', 'For zoom levels you left empty, enter the <b>recommended value</b> to get the same feel as your tuned setup. If the difference is large for a level you already entered, that level was tuned separately.')}</p>
+    <details><summary>${t('다른 방식과 비교', 'Compare with other methods')}</summary>
+      <div class="tablewrap" style="margin-top:10px"><table style="min-width:360px"><thead><tr><th>${t('방식', 'Method')}</th><th>${t('평균 오차', 'Average error')}</th></tr></thead><tbody>
         ${cand.map(c => `<tr><td>${c.name}</td><td class="mono">${fmt(c.err * 100, 1)}%</td></tr>`).join('')}
       </tbody></table></div>
     </details>
@@ -661,11 +781,33 @@ function effectiveTheme(){
   try { return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; } catch (e) { return 'light'; }
 }
 function paintThemeButtons(){
-  const t = effectiveTheme();
-  $('themeLight').setAttribute('aria-pressed', String(t === 'light'));
-  $('themeDark').setAttribute('aria-pressed', String(t === 'dark'));
+  const th = effectiveTheme();
+  $('themeLight').setAttribute('aria-pressed', String(th === 'light'));
+  $('themeDark').setAttribute('aria-pressed', String(th === 'dark'));
 }
-function setTheme(t){ document.documentElement.setAttribute('data-theme', t); lsSet(THEME_KEY, t); paintThemeButtons(); }
+function setTheme(th){ document.documentElement.setAttribute('data-theme', th); lsSet(THEME_KEY, th); paintThemeButtons(); }
+
+/* ---------- language ---------- */
+let optMsgState = null;
+function showOptMsg(){
+  $('optMsg').textContent = optMsgState ? t(optMsgState.ko, optMsgState.en)
+    : t('게임 폴더의 config\\options.json 파일을 올리면 힙파이어 감도와 FOV를 채워 줘요. 파일은 이 브라우저 안에서만 읽어요.',
+        'Upload config\\options.json from the game folder to fill in your hipfire sensitivity and FOV. The file is read only inside this browser.');
+}
+function applyLang(){
+  document.documentElement.lang = LANG;
+  document.title = t('스탈존 감도 변환기', 'STALZONE Sensitivity Converter');
+  I18N_NODES.forEach(n => {
+    const v = LANG === 'en' ? n.en : n.ko;
+    if (n.attr) n.el.setAttribute(n.attr, v); else n.el.innerHTML = v;
+  });
+  fillOptions();
+  $('langKo').setAttribute('aria-pressed', String(LANG === 'ko'));
+  $('langEn').setAttribute('aria-pressed', String(LANG === 'en'));
+  showOptMsg();
+  update();
+}
+function setLang(l){ LANG = l; lsSet(LANG_KEY, l); applyLang(); }
 
 /* ---------- storage / tabs / wiring ---------- */
 const STORE_KEY = 'stalzone-sens-v4';
@@ -683,17 +825,21 @@ function applyState(s){
   if (!GAMES[$('toGame').value] || $('toGame').value === 'custom') $('toGame').value = 'stalzone';
 }
 function showTab(name){
-  document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.tab === name)));
+  document.querySelectorAll('.tab').forEach(tb => tb.setAttribute('aria-selected', String(tb.dataset.tab === name)));
   ['convert', 'scope', 'reverse'].forEach(n => { $('p-' + n).hidden = n !== name; });
   $('stzPanel').hidden = name === 'convert';
 }
 function update(){
   const e = env();
-  $('envInfo').textContent = `화면 비율 ${fmt(e.ar, 3)}:1 · 윈도우 포인터 속도 ${e.wps}/11 · 스탈존은 윈도우 포인터 속도의 영향을 받지 않아요`;
+  $('envInfo').textContent = t(`화면 비율 ${fmt(e.ar, 3)}:1 · 윈도우 포인터 속도 ${e.wps}/11 · 스탈존은 윈도우 포인터 속도의 영향을 받지 않아요`,
+    `Aspect ratio ${fmt(e.ar, 3)}:1 · Windows pointer speed ${e.wps}/11 · STALZONE is not affected by Windows pointer speed`);
   renderConvert(); renderScope(); renderReverse();
   lsSet(STORE_KEY, JSON.stringify(collectState()));
 }
 function init(){
+  const sl = lsGet(LANG_KEY);
+  LANG = (sl === 'ko' || sl === 'en') ? sl : (((navigator.language || '').toLowerCase().indexOf('ko') === 0) ? 'ko' : 'en');
+  i18nScan();
   fillSelects();
   const saved = lsGet(STORE_KEY);
   if (saved){ try { applyState(JSON.parse(saved)); } catch (e) {} }
@@ -701,7 +847,9 @@ function init(){
   paintThemeButtons();
   $('themeLight').addEventListener('click', () => setTheme('light'));
   $('themeDark').addEventListener('click', () => setTheme('dark'));
-  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
+  $('langKo').addEventListener('click', () => setLang('ko'));
+  $('langEn').addEventListener('click', () => setLang('en'));
+  document.querySelectorAll('.tab').forEach(tb => tb.addEventListener('click', () => showTab(tb.dataset.tab)));
   document.addEventListener('input', update); document.addEventListener('change', update);
   ['from', 'to'].forEach(side => $(side + 'Game').addEventListener('change', () => { applyGameDefaults(side); update(); }));
   $('resPreset').addEventListener('change', () => { const v = $('resPreset').value; if (v !== 'custom'){ const p = v.split('x'); $('resW').value = p[0]; $('resH').value = p[1]; update(); } });
@@ -726,21 +874,28 @@ function init(){
     const rd = new FileReader();
     rd.onload = () => {
       try {
-        const o = JSON.parse(rd.result), got = [];
-        if (typeof o.mouse_sensitivity === 'number'){ $('scHip').value = o.mouse_sensitivity; got.push('힙파이어 감도 ' + o.mouse_sensitivity); }
-        if (typeof o.fov === 'number'){ $('scFov').value = o.fov; $('toFov').value = o.fov; got.push('FOV ' + o.fov); }
+        const o = JSON.parse(rd.result), gotKo = [], gotEn = [];
+        if (typeof o.mouse_sensitivity === 'number'){ $('scHip').value = o.mouse_sensitivity; gotKo.push('힙파이어 감도 ' + o.mouse_sensitivity); gotEn.push('hipfire sensitivity ' + o.mouse_sensitivity); }
+        if (typeof o.fov === 'number'){ $('scFov').value = o.fov; $('toFov').value = o.fov; gotKo.push('FOV ' + o.fov); gotEn.push('FOV ' + o.fov); }
         const zs = ZOOMS.map(z => o['sensitivity_zoom_' + zoomKey(z)]);
         const tuned = zs.every(v => typeof v === 'number') && !zs.every(v => v === zs[0]);
-        if (tuned){ zs.forEach((v, i) => { $('rv' + i).value = v; }); got.push('배율별 감도값 14개 (역분석 탭)'); }
-        let extra = '';
-        if (o.enable_sens_zoom_dependence === false) extra = ' 파일에서 배율별 감도 연동이 꺼져 있어요. 게임 설정에서 켠 뒤 값을 입력하세요.';
-        $('optMsg').textContent = (got.length ? got.join(', ') + '을(를) 채웠어요.' : '읽을 수 있는 감도 항목이 없어요.') + extra;
+        if (tuned){ zs.forEach((v, i) => { $('rv' + i).value = v; }); gotKo.push('배율별 감도값 14개 (역분석 탭)'); gotEn.push('14 per-zoom values (Reverse Analysis tab)'); }
+        let extraKo = '', extraEn = '';
+        if (o.enable_sens_zoom_dependence === false){ extraKo = ' 파일에서 배율별 감도 연동이 꺼져 있어요. 게임 설정에서 켠 뒤 값을 입력하세요.'; extraEn = ' Per-zoom sensitivity is turned off in the file. Turn it on in the game settings before entering values.'; }
+        optMsgState = {
+          ko: (gotKo.length ? gotKo.join(', ') + '을(를) 채웠어요.' : '읽을 수 있는 감도 항목이 없어요.') + extraKo,
+          en: (gotEn.length ? 'Filled in: ' + gotEn.join(', ') + '.' : 'No readable sensitivity entries found.') + extraEn
+        };
+        showOptMsg();
         update();
-      } catch (e) { $('optMsg').textContent = '파일을 읽지 못했어요. options.json이 맞는지 확인하세요.'; }
+      } catch (e) {
+        optMsgState = {ko: '파일을 읽지 못했어요. options.json이 맞는지 확인하세요.', en: 'Could not read the file. Check that it is a valid options.json.'};
+        showOptMsg();
+      }
     };
     rd.readAsText(f); ev.target.value = '';
   });
-  update();
+  applyLang();
 }
 init();
 </script>
