@@ -109,6 +109,7 @@ details{border:1px solid var(--line);border-radius:12px;padding:10px 14px}
 summary{cursor:pointer;font-weight:500;font-size:14px}
 .err{color:var(--bad);font-size:13px}
 .empty{background:var(--surface2);border-radius:12px;padding:18px;color:var(--mute);font-size:14px}
+.locked{opacity:.45;pointer-events:none;user-select:none;filter:grayscale(1)}
 .pts{margin:6px 0 0;padding-left:18px;display:grid;gap:4px}
 .gitem{padding:12px 0;border-top:1px solid var(--line)}
 .gitem:first-child{border-top:0}
@@ -197,11 +198,11 @@ summary{cursor:pointer;font-weight:500;font-size:14px}
           <label class="check" id="fromWpsBox"><input type="checkbox" id="fromWps" data-save><span>이 게임은 윈도우 포인터 속도의 영향을 받아요 (Raw Input을 쓰지 않을 때)</span></label>
         </section>
 
-        <section class="card">
+        <section class="card locked" aria-disabled="true">
           <h2>변환 방식</h2>
-          <p class="desc">기본은 <b>360° 거리</b>예요. 변환한 뒤 화면 속도감이 이상하면 MD나 Viewspeed로 바꿔 보세요. 방식을 바꾸면 두 게임의 FOV를 입력하는 칸이 나타나요.</p>
+          <p class="desc">지금은 <b>360° 거리</b> 방식으로만 변환해요. 다른 방식은 준비 중이에요.</p>
           <div class="row">
-            <div class="field"><label for="method">방식</label><select id="method" data-save></select></div>
+            <div class="field"><label for="method">방식</label><select id="method" disabled tabindex="-1"></select></div>
             <div class="field" id="pctBox" hidden><label for="pct">기준점 위치 (%)</label><input id="pct" data-save type="number" step="any" min="0" value="0"></div>
           </div>
           <div class="note" id="methodHint"></div>
@@ -502,7 +503,7 @@ function renderConvert(){
   const e = env();
   const fk = $('fromGame').value, tk = $('toGame').value;
   const cmMode = fk === 'custom';
-  const method = $('method').value, pct = num('pct') || 0, is360 = method === '360';
+  const method = '360', pct = 0, is360 = true;
   $('pctBox').hidden = !METHODS[method].pct;
   $('methodHint').innerHTML = methodInfoHTML(method, pct);
   $('fromFovBox').hidden = is360; $('toFovBox').hidden = is360;
